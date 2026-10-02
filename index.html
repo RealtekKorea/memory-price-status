@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DRAM 가격 추이</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#F3F4F6;--surface:#FFFFFF;--ink:#1D2127;--muted:#6A717C;--line:#DADDE2;--neg:#C8372D;--accent:#2A6FD6;--hover:#EEF2F8;--input:#F8F9FB}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#15171A;--surface:#1E2125;--ink:#E7E9EC;--muted:#9AA1AB;--line:#30343A;--neg:#F0705F;--accent:#6EA8F5;--hover:#262A30;--input:#24282D}}
+:root[data-theme="dark"]{--bg:#15171A;--surface:#1E2125;--ink:#E7E9EC;--muted:#9AA1AB;--line:#30343A;--neg:#F0705F;--accent:#6EA8F5;--hover:#262A30;--input:#24282D}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;font-size:14px;line-height:1.5}
+main{max-width:1180px;margin:0 auto;padding:28px 20px 48px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;margin-bottom:18px}
+h1{font-size:24px;font-weight:600;margin:0;letter-spacing:-0.01em}
+header p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.tools{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 12px;cursor:pointer}
+button:hover{background:var(--hover)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:100%}
+th,td{border-bottom:1px solid var(--line);padding:0;text-align:right;white-space:nowrap}
+thead th{background:var(--hover)}
+.stub{position:sticky;left:0;background:var(--surface);text-align:left;z-index:1;border-right:1px solid var(--line);min-width:150px}
+thead .stub{background:var(--hover);padding:8px 12px;font-weight:500;color:var(--muted)}
+input{font:inherit;color:inherit;background:transparent;border:0;width:100%;padding:8px 10px;text-align:right}
+input.q{text-align:center;font-weight:500;min-width:84px}
+input.v{min-width:84px}
+input.v:hover,input.q:hover,input.name:hover{background:var(--input)}
+.namecell{display:flex;align-items:center}
+input.name{text-align:left;font-weight:600;padding-left:12px}
+.del{border:0;background:none;color:var(--muted);padding:4px 10px;font-size:16px;line-height:1}
+.del:hover{color:var(--neg);background:none}
+tr.pct th,tr.pct td{color:var(--muted);font-size:12.5px;padding:6px 10px;border-bottom-width:2px}
+tr.pct th{font-weight:400;padding-left:12px}
+tr.pct td.up{color:var(--ink);font-weight:500}
+tr.pct td.neg{color:var(--neg);font-weight:500}
+.hint{color:var(--muted);font-size:12.5px;margin:8px 2px 24px}
+.charts{display:grid;gap:16px}
+.card{padding:16px 16px 10px}
+.card h2{font-size:15px;font-weight:600;margin:0 0 2px;display:flex;align-items:center;gap:8px}
+.card h2 i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.card p{margin:0 0 8px;color:var(--muted);font-size:12.5px}
+.cv{position:relative;height:300px}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+dialog{border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);padding:20px;width:min(640px,calc(100% - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+dialog h3{margin:0 0 6px;font-size:16px;font-weight:600}
+dialog p{margin:0 0 10px;color:var(--muted);font-size:13px}
+textarea{width:100%;height:200px;font:12.5px/1.5 Consolas,"D2Coding",monospace;color:var(--ink);background:var(--input);border:1px solid var(--line);border-radius:6px;padding:8px;resize:vertical}
+.err{color:var(--neg);font-size:13px;min-height:1.4em;margin:6px 0 0}
+.row{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+@media (max-width:640px){main{padding:20px 12px 40px}.cv{height:240px}.stub{min-width:120px}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>DRAM 가격 추이</h1>
+      <p>표에 가격을 입력하거나 분기를 추가하면 인상률과 그래프가 바로 갱신됩니다.</p>
+    </div>
+    <div class="tools">
+      <button class="primary" id="addQ">분기 추가</button>
+      <button id="delQ">마지막 분기 삭제</button>
+      <button id="addS">품목 추가</button>
+      <button id="openPaste">엑셀에서 붙여넣기</button>
+      <button id="openCopy">표 복사</button>
+    </div>
+  </header>
+
+  <div class="panel scroll"><table id="tbl"></table></div>
+  <p class="hint">인상률은 직전 분기 대비입니다. 입력값은 이 브라우저에 자동 저장됩니다.</p>
+
+  <section class="charts" id="charts"></section>
+</main>
+
+<dialog id="pasteDlg">
+  <h3>엑셀에서 붙여넣기</h3>
+  <p>엑셀에서 분기 헤더(연도 행 포함 가능)와 가격 행을 함께 복사해 붙여넣으세요. 현재 표를 대체합니다.</p>
+  <textarea id="pasteTxt" placeholder="구분	2026 Q1	2026 Q2&#10;4Gb	5.4	7.6&#10;8Gb	10.8	15.2"></textarea>
+  <div class="err" id="pasteErr"></div>
+  <div class="row"><button id="pasteCancel">취소</button><button class="primary" id="pasteApply">표에 적용</button></div>
+</dialog>
+
+<dialog id="copyDlg">
+  <h3>표 복사</h3>
+  <p>Ctrl+C로 복사한 뒤 엑셀에 붙여넣으세요.</p>
+  <textarea id="copyTxt" readonly></textarea>
+  <div class="row"><button class="primary" id="copyClose">닫기</button></div>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const KEY='dram-price-trend-v1';
+const PAL=['#2A78D6','#E0652B','#2E9D6B','#8A5CC9','#C9A227','#D2447A'];
+const DEFAULT={
+  quarters:['2024 Q2','2024 Q3','2024 Q4','2025 Q1','2025 Q2','2025 Q3','2025 Q4','2026 Q1','2026 Q2','2026 Q3'],
+  series:[
+    {name:'4Gb',values:[1.23,1.28,1.27,1.13,1.23,1.51,3.2,5.4,7.6,16.34]},
+    {name:'8Gb',values:[1.94,2.12,2.03,1.65,1.8,2.74,6.4,10.8,15.2,28]}
+  ]};
+let state=load();
+let charts=[];
+
+function load(){
+  try{const s=localStorage.getItem(KEY);if(s){const d=JSON.parse(s);if(d&&Array.isArray(d.quarters)&&Array.isArray(d.series))return normalize(d);}}catch(e){}
+  return normalize(JSON.parse(JSON.stringify(DEFAULT)));
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+function normalize(d){d.series.forEach(s=>{s.values=d.quarters.map((_,i)=>typeof s.values[i]==='number'&&isFinite(s.values[i])?s.values[i]:null);});return d;}
+function pct(v,i){if(i===0)return null;const a=v[i-1],b=v[i];if(a==null||b==null||a===0)return null;return (b-a)/a;}
+function fmtPct(p){return p==null?'':(p>=0?'+':'')+(p*100).toFixed(1)+'%';}
+function nextQ(q){const m=/^(\d{4})\s*Q([1-4])$/i.exec((q||'').trim());if(!m)return '새 분기';let y=+m[1],k=+m[2]+1;if(k>4){k=1;y++;}return y+' Q'+k;}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function parseNum(s){s=(s||'').trim().replace(/,/g,'');if(!/^-?\d*\.?\d+$/.test(s))return null;return parseFloat(s);}
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+
+/* ---------- table ---------- */
+function renderTable(){
+  const Q=state.quarters;
+  let h='<thead><tr><th class="stub">구분</th>'+Q.map((q,i)=>`<th><input class="q" data-i="${i}" value="${esc(q)}" aria-label="분기 ${i+1}"></th>`).join('')+'</tr></thead><tbody>';
+  state.series.forEach((s,si)=>{
+    h+=`<tr><th class="stub"><div class="namecell"><input class="name" data-s="${si}" value="${esc(s.name)}" aria-label="품목명"><button class="del" data-s="${si}" title="품목 삭제" aria-label="${esc(s.name)} 삭제">×</button></div></th>`;
+    h+=s.values.map((v,i)=>`<td><input class="v" inputmode="decimal" data-s="${si}" data-i="${i}" value="${v==null?'':v}" aria-label="${esc(s.name)} ${esc(Q[i])}"></td>`).join('')+'</tr>';
+    h+=`<tr class="pct"><th class="stub">인상률</th>`+s.values.map((_,i)=>pctCell(si,i)).join('')+'</tr>';
+  });
+  if(!state.series.length)h+=`<tr><td class="empty" colspan="${Q.length+1}" style="text-align:left">품목이 없습니다. 품목 추가를 눌러 시작하세요.</td></tr>`;
+  document.getElementById('tbl').innerHTML=h+'</tbody>';
+}
+function pctCell(si,i){const p=pct(state.series[si].values,i);const c=p==null?'':(p<0?'neg':'up');return `<td id="p-${si}-${i}" class="${c}">${fmtPct(p)}</td>`;}
+function refreshPct(si,i){[i,i+1].forEach(k=>{const el=document.getElementById(`p-${si}-${k}`);if(el)el.outerHTML=pctCell(si,k);});}
+
+const tbl=document.getElementById('tbl');
+tbl.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.classList.contains('v')){const si=+t.dataset.s,i=+t.dataset.i;state.series[si].values[i]=parseNum(t.value);refreshPct(si,i);}
+  else if(t.classList.contains('q')){state.quarters[+t.dataset.i]=t.value;}
+  else if(t.classList.contains('name')){state.series[+t.dataset.s].name=t.value;}
+  else return;
+  save();updateCharts();
+});
+tbl.addEventListener('click',e=>{
+  const b=e.target.closest('.del');if(!b)return;
+  state.series.splice(+b.dataset.s,1);save();renderAll();
+});
+
+/* ---------- charts ---------- */
+const pctLabels={id:'pctLabels',afterDatasetsDraw(ch){
+  const si=ch.$si,v=state.series[si]?.values;if(!v)return;
+  const ctx=ch.ctx,meta=ch.getDatasetMeta(0);
+  ctx.save();ctx.font='500 11px "IBM Plex Sans KR",sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';
+  meta.data.forEach((pt,i)=>{const p=pct(v,i);if(p==null||pt.skip)return;ctx.fillStyle=p<0?css('--neg'):css('--ink');ctx.fillText(fmtPct(p),pt.x,pt.y-9);});
+  ctx.restore();
+}};
+function yMax(v){const m=Math.max(...v.filter(x=>x!=null),0);return m?m*1.15:undefined;}
+function renderCharts(){
+  charts.forEach(c=>c.destroy());charts=[];
+  const box=document.getElementById('charts');box.innerHTML='';
+  const muted=css('--muted'),line=css('--line'),surf=css('--surface');
+  state.series.forEach((s,si)=>{
+    const col=PAL[si%PAL.length];
+    const card=document.createElement('div');card.className='panel card';
+    card.innerHTML=`<h2><i style="background:${col}"></i><span id="ct-${si}"></span></h2><p>포인트 위 숫자는 직전 분기 대비 인상률입니다.</p><div class="cv"><canvas role="img" aria-label="${esc(s.name)} 분기별 가격 추이"></canvas></div>`;
+    box.appendChild(card);
+    card.querySelector(`#ct-${si}`).textContent=s.name+' 가격 추이';
+    const c=new Chart(card.querySelector('canvas'),{type:'line',
+      data:{labels:[...state.quarters],datasets:[{data:[...s.values],borderColor:col,backgroundColor:col,borderWidth:2,pointRadius:4,pointHoverRadius:6,pointBorderColor:surf,pointBorderWidth:2,tension:0,spanGaps:false}]},
+      options:{responsive:true,maintainAspectRatio:false,animation:false,layout:{padding:{top:20,right:16}},
+        interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:t=>{const p=pct(state.series[si].values,t.dataIndex);return ` 가격 ${t.parsed.y}`+(p==null?'':`  (${fmtPct(p)})`);}}}},
+        scales:{x:{grid:{display:false},ticks:{color:muted,maxRotation:0,autoSkip:true,font:{size:11}}},
+                y:{min:0,suggestedMax:yMax(s.values),grid:{color:line},border:{display:false},ticks:{color:muted,font:{size:11}}}}},
+      plugins:[pctLabels]});
+    c.$si=si;charts.push(c);
+  });
+  if(!state.series.length)box.innerHTML='<div class="panel empty">표시할 품목이 없습니다.</div>';
+}
+function updateCharts(){
+  charts.forEach((c,si)=>{const s=state.series[si];c.data.labels=[...state.quarters];c.data.datasets[0].data=[...s.values];c.options.scales.y.suggestedMax=yMax(s.values);c.update('none');
+    const t=document.getElementById(`ct-${si}`);if(t)t.textContent=s.name+' 가격 추이';});
+}
+function renderAll(){renderTable();renderCharts();}
+
+/* ---------- toolbar ---------- */
+document.getElementById('addQ').onclick=()=>{
+  state.quarters.push(nextQ(state.quarters[state.quarters.length-1]));state.series.forEach(s=>s.values.push(null));save();renderAll();
+  const inp=tbl.querySelector(`input.v[data-s="0"][data-i="${state.quarters.length-1}"]`);
+  if(inp){inp.focus();inp.closest('.scroll').scrollLeft=1e6;}
+};
+document.getElementById('delQ').onclick=()=>{if(!state.quarters.length)return;state.quarters.pop();state.series.forEach(s=>s.values.pop());save();renderAll();};
+document.getElementById('addS').onclick=()=>{
+  state.series.push({name:'품목 '+(state.series.length+1),values:state.quarters.map(()=>null)});save();renderAll();
+  const n=tbl.querySelectorAll('input.name');if(n.length){n[n.length-1].focus();n[n.length-1].select();}
+};
+
+/* paste */
+const pasteDlg=document.getElementById('pasteDlg'),pasteTxt=document.getElementById('pasteTxt'),pasteErr=document.getElementById('pasteErr');
+document.getElementById('openPaste').onclick=()=>{pasteTxt.value='';pasteErr.textContent='';pasteDlg.showModal();pasteTxt.focus();};
+document.getElementById('pasteCancel').onclick=()=>pasteDlg.close();
+document.getElementById('pasteApply').onclick=()=>{
+  const r=parsePaste(pasteTxt.value);
+  if(r.error){pasteErr.textContent=r.error;return;}
+  state=normalize(r);save();renderAll();pasteDlg.close();
+};
+function parsePaste(text){
+  const rows=text.replace(/\r/g,'').split('\n').filter(l=>l.trim()!=='').map(l=>l.split('\t'));
+  const isYear=c=>/^(19|20)\d{2}$/.test((c||'').trim());
+  const isData=r=>r.some(c=>parseNum(c)!=null&&!isYear(c));
+  let k=0;while(k<rows.length&&!isData(rows[k]))k++;
+  const heads=rows.slice(0,k),data=rows.slice(k).filter(isData);
+  if(!heads.length)return{error:'분기 헤더 행을 찾지 못했습니다. 분기 이름이 있는 행까지 함께 복사해 주세요.'};
+  if(!data.length)return{error:'가격 행을 찾지 못했습니다. 숫자가 있는 행을 함께 복사해 주세요.'};
+  const off=parseNum(data[0][0])==null?1:0;
+  const width=Math.max(...rows.map(r=>r.length))-off;
+  const filled=heads.map(r=>{let last='';const out=[];for(let j=0;j<width;j++){const c=(r[j+off]||'').trim();if(c)last=c;out.push(last);}return out;});
+  let quarters=[];for(let j=0;j<width;j++)quarters.push(filled.map(f=>f[j]).filter(Boolean).join(' '));
+  const series=data.map((r,n)=>({name:(off?(r[0]||'').trim():'')||'품목 '+(n+1),values:quarters.map((_,j)=>parseNum(r[j+off]))}));
+  let end=quarters.length;while(end>0&&!quarters[end-1]&&series.every(s=>s.values[end-1]==null))end--;
+  quarters=quarters.slice(0,end).map((q,i)=>q||'분기 '+(i+1));series.forEach(s=>s.values=s.values.slice(0,end));
+  if(!quarters.length)return{error:'분기 열을 찾지 못했습니다.'};
+  return{quarters,series};
+}
+
+/* copy */
+const copyDlg=document.getElementById('copyDlg'),copyTxt=document.getElementById('copyTxt');
+document.getElementById('openCopy').onclick=()=>{
+  const L=['구분\t'+state.quarters.join('\t')];
+  state.series.forEach(s=>{L.push(s.name+'\t'+s.values.map(v=>v==null?'':v).join('\t'));L.push(s.name+' 인상률\t'+s.values.map((_,i)=>fmtPct(pct(s.values,i))).join('\t'));});
+  copyTxt.value=L.join('\n');copyDlg.showModal();copyTxt.focus();copyTxt.select();
+};
+document.getElementById('copyClose').onclick=()=>copyDlg.close();
+
+/* theme follow */
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',renderCharts);}catch(e){}
+new MutationObserver(renderCharts).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+renderAll();
+</script>
+</body>
+</html>
